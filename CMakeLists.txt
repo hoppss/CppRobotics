@@ -11,7 +11,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #############################
 
 find_package(Eigen3 REQUIRED)
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 3.4 REQUIRED)
 
 include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(./include)
@@ -75,3 +75,6 @@ target_link_libraries(lqr_full ${OpenCV_LIBS})
 
 #add_executable(mpc src/model_predictive_control.cpp)
 #target_link_libraries(mpc ${OpenCV_LIBS} ipopt)
+
+add_executable(linefit src/lineFit.cpp)
+target_link_libraries(linefit ${OpenCV_LIBS})
