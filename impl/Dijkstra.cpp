@@ -69,6 +69,29 @@ void Dijkstra::createGraph()
   // std::cout << graph_[width_ * 400 + 200]->coord_i_(0) << " " <<  graph_[width_ * 400 + 200]->coord_i_(1) << std::endl;
   // std::cout << "graph 400-200 cost " << static_cast<double>(costmap_.at<uchar>(400, 200)) << std::endl;
 }
+void Dijkstra::initMotionModel(){
+  motion_model_.emplace_back(0, 1);  // 右边
+  motion_model_.emplace_back(0, -1); // 左边
+  motion_model_.emplace_back(1, 0);  // 上
+  motion_model_.emplace_back(-1, 0); // 下
+}
+
+
+void Dijkstra::getNeighbors(NodePtr current, std::vector<NodePtr>& neighbor){
+
+  motion_model_.emplace_back(0, 1);  // 右边
+  motion_model_.emplace_back(0, -1); // 左边
+  motion_model_.emplace_back(1, 0);  // 上
+  motion_model_.emplace_back(-1, 0); // 下
+}
+
+double Dijkstra::getHeuristic(NodePtr from, NodePtr to) {
+
+  auto diff = to->coord_i_ - from->coord_i_;
+
+  return diff.norm();
+}
+
 
 
 bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& end, std::vector<Eigen::Vector2i>& path) {
@@ -84,6 +107,7 @@ bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& 
 
     while(!open_list_.empty())  open_list_.pop();
 
+    start_ptr->type_ = LISTYPE::OPENLIST;
     open_list_.push(start_ptr);
 
     size_t iteration_count = 0;
@@ -101,13 +125,18 @@ bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& 
 
       // 3. 判断该点是不是重点
 
-      if(current->coord_i_ = end_ptr->coord_i_) {
+      if(current->coord_i_ == end_ptr->coord_i_) {
         std::cout << "FOUND GOAL" << std::endl;
         return true;
       }
 
       // 4. 找到最近邻， 加入openlist
       std::vector<NodePtr>  neighbors;
+
+
+      for(int i=0; i<neighbors.size();++i){
+
+      }
 
     }
 

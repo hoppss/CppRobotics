@@ -14,6 +14,12 @@ public:
   void setCostmap();
   void createGraph();
 
+  void getNeighbors(NodePtr current, std::vector<NodePtr>& neighbor);
+
+  void initMotionModel();
+  double getHeuristic(NodePtr from, NodePtr to);
+
+
   bool pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& end, std::vector<Eigen::Vector2i>& path);
 
 
@@ -27,5 +33,9 @@ private:
 
   Graph  graph_;
   NodeQueue  open_list_;
-  std::vector<Node> close_list_;
+  std::vector<NodePtr> close_list_;
+
+
+  std::vector<Eigen::Vector2i>  motion_model_;
+
 };
