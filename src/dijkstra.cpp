@@ -18,7 +18,7 @@ using namespace std;
 
 class Node{
 public:
-  int x;
+  int x;  // index
   int y;
   float cost;
   Node* p_node;
@@ -43,7 +43,7 @@ std::vector<std::vector<float> > calc_final_path(Node * goal, float reso, cv::Ma
   return {rx, ry};
 }
 
-
+// 障碍物标记 + 膨胀
 std::vector<std::vector<int> > calc_obstacle_map(
     std::vector<int> ox, std::vector<int> oy,
     const int min_ox, const int max_ox,
@@ -76,7 +76,7 @@ std::vector<std::vector<int> > calc_obstacle_map(
   return obmap;
 }
 
-
+// bound 合法检查， 是否被占用， 用于是否expansion
 bool verify_node(Node* node,
                  vector<vector<int> > obmap,
                  int min_ox, int max_ox,
@@ -115,10 +115,10 @@ void dijkstra_star_planning(float sx, float sy,
   Node* ngoal = new Node((int)std::round(gx/reso), (int)std::round(gy/reso), 0.0);
 
 
-  vector<int> ox;
+  vector<int> ox;// index
   vector<int> oy;
 
-  int min_ox = std::numeric_limits<int>::max();
+  int min_ox = std::numeric_limits<int>::max();  // index
   int max_ox = std::numeric_limits<int>::min();
   int min_oy = std::numeric_limits<int>::max();
   int max_oy = std::numeric_limits<int>::min();
@@ -142,13 +142,13 @@ void dijkstra_star_planning(float sx, float sy,
   int ywidth = max_oy-min_oy;
 
   //visualization
-  cv::namedWindow("astar", cv::WINDOW_NORMAL);
+  cv::namedWindow("dijksra", cv::WINDOW_NORMAL);
   int count = 0;
   int img_reso = 5;
   cv::Mat bg(img_reso*xwidth,
              img_reso*ywidth,
              CV_8UC3,
-             cv::Scalar(255,255,255));
+             cv::Scalar(255,255,255)); // 默认白
 
     cv::rectangle(bg,
                   cv::Point(nstart->x*img_reso+1, nstart->y*img_reso+1),
@@ -171,29 +171,30 @@ void dijkstra_star_planning(float sx, float sy,
 
   // NOTE: d_ary_heap should be a better choice here
   auto cmp = [](const Node* left, const Node* right){return left->cost > right->cost;};
-  std::priority_queue<Node*, std::vector<Node*>, decltype(cmp)> pq(cmp);
+  std::priority_queue<Node*, std::vector<Node*>, decltype(cmp)> pq(cmp); // openlist
 
   pq.push(nstart);
   std::vector<Node> motion = get_motion_model();
 
   while (true){
-    Node * node = pq.top();
+    // 1. 取出队首
+    Node * node = pq.top(); 
 
     if (visit_map[node->x-min_ox][node->y-min_oy] == 1){
-      pq.pop();
+      pq.pop();      // 已经访问在clost_list
       delete node;
       continue;
     }else{
       pq.pop();
       visit_map[node->x-min_ox][node->y-min_oy] = 1;
     }
-
+    // 2. 到达条件判断
     if (node->x == ngoal->x && node->y==ngoal->y){
       ngoal->cost = node->cost;
       ngoal->p_node = node;
       break;
     }
-
+    // 3. expansion
     for(int i=0; i<motion.size(); i++){
       Node * new_node = new Node(
         node->x + motion[i].x,
@@ -238,7 +239,7 @@ void dijkstra_star_planning(float sx, float sy,
 
 
 int main(){
-  float sx = 10.0;
+  float sx = 10.0;  // 单位还是meter
   float sy = 10.0;
   float gx = 50.0;
   float gy = 50.0;
@@ -247,33 +248,33 @@ int main(){
   float robot_size = 1.0;
 
   vector<float> ox;
-  vector<float> oy;
+  vector<float> oy;  // meter
 
   // add edges
   for(float i=0; i<60; i++){
     ox.push_back(i);
     oy.push_back(60.0);
-  }
+  } // 下边界
   for(float i=0; i<60; i++){
     ox.push_back(60.0);
     oy.push_back(i);
-  }
+  } // 右边界
   for(float i=0; i<61; i++){
     ox.push_back(i);
-    oy.push_back(60.0);
-  }
+    oy.push_back(0.0); // bug fix;
+  }  //上边界
   for(float i=0; i<61; i++){
     ox.push_back(0.0);
     oy.push_back(i);
-  }
+  } // 左边界
   for(float i=0; i<40; i++){
     ox.push_back(20.0);
     oy.push_back(i);
-  }
+  } // 左上障碍物
   for(float i=0; i<40; i++){
     ox.push_back(40.0);
     oy.push_back(60.0 - i);
-  }
+  }  // 右下障碍物
 
   dijkstra_star_planning(sx, sy, gx, gy, ox, oy, grid_size, robot_size);
   return 0;

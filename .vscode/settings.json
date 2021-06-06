@@ -60,7 +60,8 @@
       "streambuf": "cpp",
       "valarray": "cpp",
       "algorithm": "cpp",
-      "memory": "cpp"
+      "memory": "cpp",
+      "string": "cpp"
     },
     "editor.tabSize": 2,
     "editor.insertSpaces": true,

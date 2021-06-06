@@ -78,3 +78,9 @@ target_link_libraries(lqr_full ${OpenCV_LIBS})
 
 add_executable(linefit src/lineFit.cpp)
 target_link_libraries(linefit ${OpenCV_LIBS})
+
+
+
+## self-implementation
+ADD_SUBDIRECTORY(impl)
+
