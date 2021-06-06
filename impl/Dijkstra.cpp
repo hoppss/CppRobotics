@@ -76,6 +76,7 @@ bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& 
 
     NodePtr end_ptr = graph_[end(1) * width_ + end(0)];
 
+    start_ptr->g_score_ = start_ptr->f_score_ = 0;
 
     std::cout << static_cast<int>(start_ptr->cost_) << std::endl;
     std::cout << static_cast<int>(end_ptr->cost_) << std::endl;
@@ -89,7 +90,24 @@ bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& 
 
     while(!open_list_.empty()) {
 
-      std::cout << "-";
+      // 1. 从open_list pop, f or g 最小的节点
+
+      NodePtr current = open_list_.top();
+      open_list_.pop();
+
+      // 2. 标记该节点被扩展（已经找到起点到该点最优， 访问过的）
+      close_list_.push_back(current);
+      current->type_ = LISTYPE::CLOSELIST;   // expanded, while is visited;
+
+      // 3. 判断该点是不是重点
+
+      if(current->coord_i_ = end_ptr->coord_i_) {
+        std::cout << "FOUND GOAL" << std::endl;
+        return true;
+      }
+
+      // 4. 找到最近邻， 加入openlist
+      std::vector<NodePtr>  neighbors;
 
     }
 
