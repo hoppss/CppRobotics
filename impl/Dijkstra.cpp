@@ -99,6 +99,7 @@ bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& 
 
     NodePtr end_ptr = graph_[end(1) * width_ + end(0)];
 
+    // 初始阶段， 只有起点的代价是0， 其余都是inf
     start_ptr->g_score_ = start_ptr->f_score_ = 0;
 
     std::cout << static_cast<int>(start_ptr->cost_) << std::endl;
