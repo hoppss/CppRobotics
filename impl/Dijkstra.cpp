@@ -77,7 +77,7 @@ void Dijkstra::initMotionModel(){
 }
 
 
-void Dijkstra::getNeighbors(NodePtr current, std::vector<NodePtr>& neighbor){
+void Dijkstra::getNeighbors(NodePtr current, std::vector<NodePtr>& neighbors, std::vector<double>& cost){
 
   motion_model_.emplace_back(0, 1);  // 右边
   motion_model_.emplace_back(0, -1); // 左边
@@ -121,7 +121,7 @@ bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& 
 
       // 2. 标记该节点被扩展（已经找到起点到该点最优， 访问过的）
       close_list_.push_back(current);
-      current->type_ = LISTYPE::CLOSELIST;   // expanded, while is visited;
+      current->type_ = LISTYPE::CLOSELIST;   // expanded, while it also is visited;
 
       // 3. 判断该点是不是重点
 
@@ -132,6 +132,8 @@ bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& 
 
       // 4. 找到最近邻， 加入openlist
       std::vector<NodePtr>  neighbors;
+      std::vector<double> costs;
+      getNeighbors(current, neighbors, costs);
 
 
       for(int i=0; i<neighbors.size();++i){

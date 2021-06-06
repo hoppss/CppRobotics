@@ -14,7 +14,7 @@ public:
   void setCostmap();
   void createGraph();
 
-  void getNeighbors(NodePtr current, std::vector<NodePtr>& neighbor);
+  void getNeighbors(NodePtr current, std::vector<NodePtr>& neighbors, std::vector<double>& costs);
 
   void initMotionModel();
   double getHeuristic(NodePtr from, NodePtr to);
