@@ -1,18 +1,26 @@
-#include "Dijkstra.h"
+#include "AStar.h"
 #include <thread>
 
-Dijkstra::Dijkstra(){
+AStar::AStar(){
   debug_  = true;
-  name_= "dijkstra";
+  name_= "AStar";
   cv::namedWindow(name_, CV_WINDOW_NORMAL);
 
 
-  // model_  = MotionModel::VON_NEUMANN;
-  model_  = MotionModel::MOORE;
+  // model_  = MotionModel::VON_NEUMANN; // 4-neighbors
+  model_  = MotionModel::MOORE;    // 8-neighbors
+
+  // g_gain = h_gain = 1  -> astar
+  // g_gain = 1; h_gain = 0 -> dijkstra
+  // g_gain = 0; h_gain - 1 -> greedy
+
+  // h_gain > 1, -> 不能保证最优解
+  g_gain_ = 1.0;
+  h_gain_ = 1.0;
 }
 
 
-Dijkstra::~Dijkstra(){
+AStar::~AStar(){
   for(auto it = graph_.begin(); it != graph_.end(); ++it) {
     if(*it != nullptr){
       delete (*it);
@@ -25,7 +33,7 @@ Dijkstra::~Dijkstra(){
   std::cout << "deconstructor" << std::endl;
 }
 
-void Dijkstra::setCostmap() {
+void AStar::setCostmap() {
   // Mat(rows, cols, type)
   costmap_  = cv::Mat(48, 64, CV_8UC1, cv::Scalar(255)).clone();
 
@@ -60,9 +68,9 @@ void Dijkstra::setCostmap() {
 
 
   // 右边竖线
-  for(int v=7; v < 48; ++v) {
-    costmap_.at<uchar>(v, 40) = 0;
-  }
+  // for(int v=7; v < 48; ++v) {
+  //   costmap_.at<uchar>(v, 40) = 0;
+  // }
 
   visualize(10000);
 
@@ -78,7 +86,7 @@ void Dijkstra::setCostmap() {
 }
 
 // 这一版本都是指针操作，为了节省开销，也不知道节省多少
-void Dijkstra::createGraph()
+void AStar::createGraph()
 {
   for(int j =0; j < height_; ++j) {
 
@@ -95,7 +103,7 @@ void Dijkstra::createGraph()
   // std::cout << "graph 400-200 cost " << static_cast<double>(costmap_.at<uchar>(400, 200)) << std::endl;
 }
 
-void Dijkstra::initMotionModel(){
+void AStar::initMotionModel(){
   motion_model_.emplace_back(1.0, 1.0);  // 右边
   motion_model_.emplace_back(-1.0, 1.0); // 左边
   motion_model_.emplace_back(static_cast<double>(width_), 1.0); // 下
@@ -113,7 +121,7 @@ void Dijkstra::initMotionModel(){
 }
 
 
-void Dijkstra::getNeighbors(NodePtr current, std::vector<NodePtr>& neighbors, std::vector<double>& costs){
+void AStar::getNeighbors(NodePtr current, std::vector<NodePtr>& neighbors, std::vector<double>& costs){
 
   for(auto it = motion_model_.begin(); it != motion_model_.end(); ++it) {
     int i =current->getIndex() + static_cast<int>((*it)(0));
@@ -127,22 +135,41 @@ void Dijkstra::getNeighbors(NodePtr current, std::vector<NodePtr>& neighbors, st
   }
 }
 
-double Dijkstra::getHeuristic(NodePtr from, NodePtr to) {
+double AStar::getHeuristic(NodePtr from, NodePtr to) {
 
+  // euclidean
   double dx = static_cast<double>(to->getX() -  from->getX());
   double dy = static_cast<double>(to->getY() -  from->getY());
 
-  return std::sqrt( dx * dx + dy * dy);
+  // return std::sqrt( dx * dx + dy * dy);
+
+
+  // diagonal heuristic
+  return dx + dy + (sqrt2 - 2) * std::min(dx, dy);
+}
+
+// h = h + cross * 0.001
+double AStar::getCrossHeuristic(NodePtr start, NodePtr end, NodePtr node) {
+
+  double dx1 = std::fabs(static_cast<double>(node->getX() -  end->getX()));
+  double dy1 = std::fabs(static_cast<double>(node->getY() - end->getY()));
+
+  double dx2 = std::fabs(static_cast<double>(start->getX() -  end->getX()));
+  double dy2 = std::fabs(static_cast<double>(start->getY() - end->getY()));
+
+  return std::fabs(dx1 * dy2 - dx2 * dy1) * 0.001;
 }
 
 
 
-bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& end, std::vector<Eigen::Vector2i>& path) {
+bool AStar::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& end, std::vector<Eigen::Vector2i>& path) {
     NodePtr start_ptr = graph_[start(1) * width_ + start(0)];
     NodePtr end_ptr = graph_[end(1) * width_ + end(0)];
 
     // 初始阶段， 只有起点的代价是0， 其余都是inf
-    start_ptr->g_score_ = start_ptr->f_score_ = 0;
+    start_ptr->g_score_ = 0;
+    start_ptr->h_score_ = getHeuristic(start_ptr, end_ptr);  // astar start cost is h_score
+    start_ptr->f_score_ = g_gain_ * (start_ptr->g_score_) + h_gain_ * (start_ptr->h_score_);  // f = g+h
 
     bool find_path = false;
 
@@ -184,6 +211,7 @@ bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& 
       getNeighbors(current, neighbors, costs);
 
       std::cout << "------" << cnt << ", neighbors: " <<  neighbors.size()<< std::endl;
+      assert(neighbors.size() == costs.size());
 
       for(int i=0; i<neighbors.size();++i){
         std::cout << "current: " << current->getIndex() << ", neighbor: " << neighbors[i]->getIndex() << std::endl;
@@ -192,7 +220,8 @@ bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& 
         // 对于所有不在close_list 中的邻居进行扩展
         if(neighbors[i]->type_ == LISTYPE::UNKNOW) {
           neighbors[i]->g_score_ = current->g_score_ + costs[i];
-          neighbors[i]->f_score_ = neighbors[i]->g_score_;
+          neighbors[i]->h_score_ = getHeuristic(neighbors[i], end_ptr) + getCrossHeuristic(start_ptr, end_ptr, neighbors[i]);
+          neighbors[i]->f_score_ = g_gain_ * (neighbors[i]->g_score_) + h_gain_ * (neighbors[i]->h_score_);
           neighbors[i]->type_ = LISTYPE::OPENLIST;
           neighbors[i]->parent_ = current;
           open_list_.push(neighbors[i]);
@@ -201,12 +230,14 @@ bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& 
           // 如果邻居已经在open list中， 则检查是否从当前点更近
           if(neighbors[i]->g_score_ > current->g_score_ + costs[i]) {
             neighbors[i]->g_score_ = current->g_score_ + costs[i];
-            neighbors[i]->f_score_ = neighbors[i]->g_score_;
+            neighbors[i]->h_score_ = getHeuristic(neighbors[i], end_ptr) + getCrossHeuristic(start_ptr, end_ptr, neighbors[i]);
+            neighbors[i]->f_score_ = g_gain_ * (neighbors[i]->g_score_) + h_gain_ * (neighbors[i]->h_score_);
             neighbors[i]->parent_ = current;
-            std::cerr << "----------------------------------New Close PATH to " << neighbors[i]->getIndex() << ", by " << current->getIndex() << std::endl;
+
+            std::cerr << "--------------------------New Close PATH to " << neighbors[i]->getIndex() << ", by " << current->getIndex() << std::endl;
           }
         } else {
-          // 已经在close_list， 忽略
+          // 已经在close list, pass
           std::cout << "? neighbor type: " << (int)(neighbors[i]->type_) << std::endl;
         }
       }
@@ -222,7 +253,7 @@ bool Dijkstra::pathFinding(const Eigen::Vector2i& start, const Eigen::Vector2i& 
     return true;
 }
 
-bool Dijkstra::tracebackPath(NodePtr start, NodePtr end, std::vector<Eigen::Vector2i>& path) {
+bool AStar::tracebackPath(NodePtr start, NodePtr end, std::vector<Eigen::Vector2i>& path) {
    NodePtr p = end;
 
    while(p->parent_) {
@@ -240,7 +271,7 @@ bool Dijkstra::tracebackPath(NodePtr start, NodePtr end, std::vector<Eigen::Vect
    return true;
 }
 
-void Dijkstra::visualize(int ms, NodePtr p) {
+void AStar::visualize(int ms, NodePtr p) {
 
   cv::Mat copy = costmap_.clone();
 
@@ -252,13 +283,13 @@ void Dijkstra::visualize(int ms, NodePtr p) {
     copy.at<uchar>(p->getY(), p->getX()) = 0;
   }
   cv::imshow(name_, copy);
-  cv::waitKey(ms);
+  cv::waitKey(ms);   // show for ms(millesecond)
 }
 
 
 int main() {
 
-  Dijkstra d;
+  AStar d;
   d.setCostmap();
 
   d.createGraph();

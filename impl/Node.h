@@ -38,6 +38,7 @@ public:
     type_ = LISTYPE::UNKNOW;   // initial is known, if CLOSELIST indicate visited
 
     f_score_ = g_score_ = std::numeric_limits<float>::max();
+    h_score_ = 0.0;
   }
 
 
