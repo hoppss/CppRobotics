@@ -28,10 +28,10 @@ class Node {
 public:
 
 
-  Node(Eigen::Vector2i coord_i, unsigned char cost) {
-    // index_ = index;
+  Node(int i, Eigen::Vector2i coord,unsigned char cost) {
+    index_ = i;
+    coord_i_ = coord;
     cost_ = cost;
-    coord_i_ = coord_i;
 
     parent_ = nullptr;
 
@@ -40,16 +40,29 @@ public:
     f_score_ = g_score_ = std::numeric_limits<float>::max();
   }
 
-  // int index_;
-  Eigen::Vector2i  coord_i_;  // 0 is x, 1 is y index
+
+  int getX() {
+    return coord_i_(0);
+  }
+
+  int getY() {
+    return coord_i_(1);
+  }
+
+  int getIndex() {
+    return index_;
+  }
+
+  int index_;
   unsigned char cost_;      // cost in grid cell from costmap or mat
 
-  //Eigen::Vector2d  coord_;  // coord in global frame
+  Eigen::Vector2i  coord_i_;  // 0 is x, 1 is y index
+  // Eigen::Vector2d  coord_;  // coord in global frame
 
   NodePtr  parent_;         // parent_ which indicate where came frome
 
 
-  LISTYPE type_;
+  LISTYPE type_;            // mark Node current location type
 
 
   double g_score_;          // cost from start to current

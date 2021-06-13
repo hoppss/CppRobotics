@@ -12,6 +12,8 @@ enum class MotionModel
   REEDS_SHEPP = 4,
 };
 
+// VON_NEUMANN: 4-neighbor
+// MOORE: 8-neighbor
 
 inline std::string toString(const MotionModel & n)
 {
